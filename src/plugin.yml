@@ -1,0 +1,31 @@
+author: JamesHealey94
+website: https://github.com/JamesHealey94
+
+name: SimpleRandomNumber
+main: com.gmail.jameshealey1994.simplerandomnumber.SimpleRandomNumber
+version: 2.0
+
+commands:
+    srn:
+        description: Rolls dice and shows outcome.
+        aliases: [dice, random, randomnumber, rn, roll, rolldice]
+        usage: /<command> to roll the dice!
+permissions:
+    srn.*:
+        description: Gives access to all commands
+        default: false
+        children:
+            srn.defaults: true
+            srn.custom: true
+            srn.admin: true
+    srn.defaults:
+        description: Allows you generate a random number in the default range
+        default: true
+    srn.custom:
+        description: Allows you generate a random number in custom ranges 
+        default: true
+        children:
+            srn.defaults: true
+    srn.admin:
+        description: Allows you to change the default range, and reload the configuration
+        default: op
