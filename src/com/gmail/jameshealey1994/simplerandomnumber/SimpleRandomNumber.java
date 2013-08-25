@@ -220,7 +220,7 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
      * @param sender The sender of the command
      * @return If reload was completed correctly.
      */
-    private boolean reload(CommandSender sender)
+    public boolean reload(CommandSender sender)
     {
         if (sender.hasPermission("srn.admin"))
         {
