@@ -19,4 +19,4 @@
 # I'd recommend using '&', as I have in the default message.
 DefaultMinimum: 1
 DefaultMaximum: 6
-BroadcastMessage: -sender &3rolled (-min to -max) and got &6-result!
+BroadcastMessage: -sender &3rolled (-min to -max) and got &6'-result'!

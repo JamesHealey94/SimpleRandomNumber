@@ -1,17 +1,16 @@
 package com.gmail.jameshealey1994.simplerandomnumber;
 
 /**
- *
+ * Simple Random Number Generation Bukkit Plugin 
  * @author James Healey
  */
 import java.util.Random;
-import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
- 
+
 public final class SimpleRandomNumber extends JavaPlugin implements Listener
 {
     private int FALLBACK_MIN = 1;
@@ -24,43 +23,23 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
     {
         // Save a copy of the default config.yml if one is not there
         this.saveDefaultConfig();
-        
-        setDefaults();
+
+        // Set defaults from config.yml
+        setDefaultsFromConfig(getServer().getConsoleSender());
     }
-    
+
     /**
-     * Sets default Min and Max values from the configuration file.
-     * If values from the file are invalid (min > max), defaults of 1 and 6 are used.
+     * Sets defaultMin and defaultMax values from the configuration file.
+     * @param sender The sender of the command
      */
-    private void setDefaults()
+    private void setDefaultsFromConfig(CommandSender sender)
     {
-        // Check config values for defaults are ok (max >= min)
-        if (areDefaultsOK())
-        {
-            // If config values are OK, use as defaults
-            setDefaultMin(getConfig().getInt("DefaultMinimum"));
-            setDefaultMax(getConfig().getInt("DefaultMaximum"));
-        }
-        else
-        {
-            // If not, log to server and use 1 and 6 as defaults
-            getLogger().log(Level.WARNING, "Default values in config are invalid, using {0} and {1} as defaults.", new Object[]{FALLBACK_MIN, FALLBACK_MAX});
-            
-        }
+        setDefaults(sender, getConfig().getInt("DefaultMinimum"), getConfig().getInt("DefaultMaximum"));
     }
-    
-    /**
-     * Returns whether the default minimum and maximum values from the file are valid (max > min)
-     * @return if (max from file >= min from file)
-     */
-    private boolean areDefaultsOK()
-    {
-        return (getConfig().getInt("DefaultMaximum") >= getConfig().getInt("DefaultMinimum"));
-    }
-    
+
     /**
      * Carries out commands
-     * @param sender The user who sent the command
+     * @param sender The sender of the command
      * @param cmd The command the user sent
      * @param commandLabel The exact command the user sent
      * @param args The arguments given with the command
@@ -71,100 +50,102 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
     {
         if (cmd.getName().equalsIgnoreCase("srn"))
         {
-            if (args.length >= 1)
+            if (args.length > 0)
             {
-                if (areInts(args))
+                try
                 {
-                    if (sender.hasPermission("srn.custom"))
+                    if (args[0].equalsIgnoreCase("setmin")) // Set default minimum
                     {
-                        return rollDice(sender, args);
+                        return setDefaultMin(sender, Integer.valueOf(args[1]));
                     }
-                    else
+                    else if (args[0].equalsIgnoreCase("setmax")) // Set default maximum
                     {
-                        sender.sendMessage(ChatColor.RED + "You need permission 'srn.custom' to use this command.");
-                        return false;
+                        return setDefaultMax(sender, Integer.valueOf(args[1]));
                     }
                 }
-                else if (args[0].equalsIgnoreCase("setmin")) // Set default minimum
+                catch (ArrayIndexOutOfBoundsException ex)
                 {
-                    if (sender.hasPermission("srn.admin"))
-                    {
-                        return setMin(sender, args);
-                    }
-                    else
-                    {
-                        sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
-                        return false;
-                    }
+                    // /setmin or /setmax followed by " "
+                    sender.sendMessage(ChatColor.RED + "Please specify a new value!");
+                    return true;
                 }
-                else if (args[0].equalsIgnoreCase("setmax")) // Set default maximum
+                if (args[0].equalsIgnoreCase("reload")) // Reload values from config.
                 {
-                    if (sender.hasPermission("srn.admin"))
-                    {
-                        return setMax(sender, args);
-                    }
-                    else
-                    {
-                        sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
-                        return false;
-                    }
+                    return reload(sender);
                 }
-                // Useful if user changes config values from file.
-                else if (args[0].equalsIgnoreCase("reload")) // Reload values from config.
+                else if (areInts(args))
                 {
-                    if (sender.hasPermission("srn.admin"))
-                    {
-                        reload(sender);
-                        return true;
-                    }
-                    else
-                    {
-                        sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
-                        return false;
-                    }
+                    return rollDice(sender, convertToIntArray(args));
                 }
                 else
                 {
                     sender.sendMessage(ChatColor.RED + "Custom range values need to be integers!");
-                    return false;
+                    return true;
                 }
             }
             else
             {
-                if (sender.hasPermission("srn.defaults"))
-                {
-                    broadcastResult(sender, defaultMin, defaultMax); // /roll - Roll dice with default values
-                    return true;
-                }
-                else
-                {
-                    sender.sendMessage(ChatColor.RED + "You need permission 'srn.defaults' to use this command.");
-                    return false;
-                }
+                return rollDice(sender, new int[0]);
             }
         }
         return false;
     }
-    
+
+    /**
+     * Convert string array to integer array
+     * Assumes strings in the input string array are valid integers
+     * @param strings Input array of strings
+     * @return Array with the integer values of the input strings
+     */
+    private int[] convertToIntArray(String[] strings)
+    {
+        int[] ints = new int[strings.length];
+        for (int i = 0; i < strings.length; i++)
+        {
+            ints[i] = Integer.valueOf(strings[i]);
+        }
+        return ints;
+    }
+
     /**
      * Displays a random number between 2 limits, either default or specified.
-     * @param sender The user who sent the command
+     * @param sender The sender of the command
      * @param args The arguments given with the command, possibly including min and max values
      * @return If a command was used correctly
      */
-    private boolean rollDice(CommandSender sender, String[] args)
+    private boolean rollDice(CommandSender sender, int[] args)
     {
-        if (args.length == 1) // roll <max>
+        if (args.length == 0) // roll with default values
         {
-            int max = Integer.valueOf(args[0]);
-            if (defaultMin <= max)
+            if (sender.hasPermission("srn.defaults"))
             {
-                broadcastResult(sender, defaultMin, max);
+                broadcastResult(sender, getDefaultMin(), getDefaultMax()); // /roll - Roll dice with default values
                 return true;
             }
             else
             {
-                sender.sendMessage(ChatColor.RED + "Max (" + max + ") lower than the default min (" + defaultMin + ")!");
+                sender.sendMessage(ChatColor.RED + "You need permission 'srn.defaults' to use this command.");
+                return false;
+            }
+        }
+
+        if (!sender.hasPermission("srn.custom"))
+        {
+            sender.sendMessage(ChatColor.RED + "You need permission 'srn.custom' to use this command.");
+            return false;
+        }
+
+        if (args.length == 1) // roll <max>
+        {
+            int max = Integer.valueOf(args[0]);
+            if (getDefaultMin() <= max)
+            {
+                broadcastResult(sender, getDefaultMin(), max);
+                return true;
+            }
+            else
+            {
+                sender.sendMessage(ChatColor.RED + "Max (" + max + ") lower than the default min (" + getDefaultMin() + ")!");
                 return false;
             }
         }
@@ -183,17 +164,16 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
                 return false;
             }
         }
-        else if (args.length != 0) // not defaults and not custom
+        else // not defaults and not custom
         {
             sender.sendMessage(ChatColor.RED + "Invalid number of arguments!");
             return false;
         }
-        return false;
     }
-    
+
     /**
      * Checks if the strings passed can be converted to integers.
-     * @param strings
+     * @param strings Array of strings that can possibly be converted to integers.
      * @return If the array of strings passed can be converted to integers.
      */
     private boolean areInts(String[] strings)
@@ -204,7 +184,7 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
             {
                 Integer.parseInt(strings[i]);
             }
-            catch (NumberFormatException e)
+            catch (NumberFormatException ex)
             {
                 return false;
             }
@@ -213,118 +193,59 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
     }
 
     /**
-     * Sets the default minimum value.
-     * @param sender The user who sent the command
-     * @param args The arguments given with the command, including the new min value
-     * @return If a new default is set correctly.
+     * Sets defaultMin and defaultMax values.
+     * Used when defaultMin and defaultMax values are changed at the same time
+     * @param sender The sender of the command
+     * @param newDefaultMin Integer value of attempted new defaultMin value
+     * @param newDefaultMax Integer value of attempted new defaultMax value
      */
-    private boolean setMin(CommandSender sender, String[] args)
+    public void setDefaults(CommandSender sender, int newDefaultMin , int newDefaultMax)
     {
-        if (args.length == 2)
+        // Check config values for defaults are ok (max >= min)
+        if (newDefaultMax >= newDefaultMin)
         {
-            try
-            {
-                Integer.parseInt(args[1]);
-            }
-            catch (NumberFormatException e)
-            {
-                sender.sendMessage(ChatColor.RED + "Default Minimum needs to be an integer!");
-                return false;
-            }
-            
-            if ((Integer.valueOf(args[1])) <= defaultMax)
-            {
-                defaultMin = (Integer.valueOf(args[1]));
-                getConfig().set("DefaultMinimum", defaultMin);
-                saveConfig();
-                sender.sendMessage("Default Minimum set to " + defaultMin);
-                return true;
-            }
-            else
-            {
-                sender.sendMessage(ChatColor.RED + "Attempted new default min (" + Integer.valueOf(args[1]) + ") higher than current default max (" + defaultMax + ")!");
-                return false;
-            }
-        }
-        else if (args.length > 2)
-        {
-            sender.sendMessage(ChatColor.RED + "Too many arguments!");
-            return false;
+            // If config values are OK, use as defaults
+            defaultMin = newDefaultMin;
+            defaultMax = newDefaultMax;
         }
         else
         {
-            sender.sendMessage(ChatColor.RED + "You need to specify a new minimum!");
-            return false;
-        }
-    }
-    
-    /**
-     * Sets the default maximum value.
-     * @param sender The user who sent the command
-     * @param args The arguments given with the command, including the new max value
-     * @return If a new default is set correctly.
-     */
-    private boolean setMax(CommandSender sender, String[] args)
-    {
-        if (args.length == 2)
-        {
-            try
-            {
-                Integer.parseInt(args[1]);
-            }
-            catch (NumberFormatException e)
-            {
-                sender.sendMessage(ChatColor.RED + "Default Maximum needs to be an integer!");
-                return false;
-            }
-            
-            if ((Integer.valueOf(args[1])) >= defaultMin)
-            {
-                defaultMax = (Integer.valueOf(args[1]));
-                getConfig().set("DefaultMaximum", defaultMax);
-                saveConfig();
-                sender.sendMessage("Default Maximum set to " + defaultMax);
-                return true;
-            }
-            else
-            {
-                sender.sendMessage(ChatColor.RED + "Attempted new default max (" + Integer.valueOf(args[1]) + ") lower than current default min (" + defaultMin + ")!");
-                return false;
-            }
-        }
-        else if (args.length > 2)
-        {
-            sender.sendMessage(ChatColor.RED + "Too many arguments!");
-            return false;
-        }
-        else
-        {
-            sender.sendMessage(ChatColor.RED + "You need to specify a new maximum!");
-            return false;
+            // If not, send message and continue using valid defaults
+            sender.sendMessage("Default values in config are invalid. Using " + getDefaultMin() + " and " + getDefaultMax() + " as defaults.");
         }
     }
 
     /**
      * Reloads values from configuration file
-     * @param sender The user who sent the command
+     * @param sender The sender of the command
+     * @return If reload was completed correctly.
      */
-    private void reload(CommandSender sender)
+    private boolean reload(CommandSender sender)
     {
-        reloadConfig();
-        sender.sendMessage(ChatColor.LIGHT_PURPLE + "Configuration reloaded.");
-        setDefaults();
-        sender.sendMessage("Current default min:" + defaultMin);
-        sender.sendMessage("Current default max:" + defaultMax);
+        if (sender.hasPermission("srn.admin"))
+        {
+            reloadConfig();
+            sender.sendMessage(ChatColor.LIGHT_PURPLE + "Configuration reloaded.");
+            setDefaultsFromConfig(sender);
+            sender.sendMessage(ChatColor.GRAY + "Current default min: '" + getDefaultMin() + "'");
+            sender.sendMessage(ChatColor.GRAY + "Current default max: '" + getDefaultMax() + "'");
+            return true;
+        }
+        else
+        {
+            sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
+            return false;
+        }
     }
-    
+
     /**
      * Broadcasts a random number between 2 limits
-     * @param sender The user who sent the command
+     * @param sender The sender of the command
      * @param min The minimum value the random number can be
      * @param max The maximum value the random number can be
      */
     private void broadcastResult(CommandSender sender, int min, int max)
-    {        
+    {
         int result = getRandom(min, max);
 
         String message = getConfig().getString("BroadcastMessage");
@@ -333,26 +254,27 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
         message = message.replaceAll("-min", String.valueOf(min));
         message = message.replaceAll("-max", String.valueOf(max));
         message = message.replaceAll("-result", String.valueOf(result));
-        
+
         getServer().broadcastMessage(message);
     }
-    
+
     /**
      * Generates a random number between 2 limits
      * @param min The minimum value the random number can be
      * @param max The maximum value the random number can be
      * @return A random number between min and max
      */
-    private int getRandom(int min, int max)
+    public int getRandom(int min, int max)
     {
-        Random rand = new Random();        
+        Random rand = new Random();
         // nextInt is normally exclusive of the top value, so add 1 to make it inclusive
 
         return rand.nextInt(max - min + 1) + min;
     }
 
-    /*
+    /**
      * Getter for variable: defaultMin
+     * @return defaultMin
      */
     public int getDefaultMin()
     {
@@ -361,21 +283,35 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
 
     /**
      * Setter for variable: defaultMin
-     * @param newMin
+     * @param sender The sender of the command
+     * @param newDefaultMin Integer value of attempted new defaultMin value
      * @return If new value was set
      */
-    public boolean setDefaultMin(int newMin)
+    public boolean setDefaultMin(CommandSender sender, int newDefaultMin)
     {
-        if (newMin > getDefaultMax())
+        if (sender.hasPermission("srn.admin"))
         {
+            if (newDefaultMin > getDefaultMax())
+            {
+                sender.sendMessage(ChatColor.RED + "Attempted new default min (" + newDefaultMin + ") higher than current default max (" + getDefaultMax() + ")!");
+                return false;
+            }
+            this.defaultMin = newDefaultMin;
+            getConfig().set("DefaultMinimum", getDefaultMin());
+            saveConfig();
+            sender.sendMessage(ChatColor.GRAY + "Default Minimum set to '" + getDefaultMin() + "'");
+            return true;
+        }
+        else
+        {
+            sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
             return false;
         }
-        this.defaultMin = newMin;
-        return true;
     }
 
-    /*
+    /**
      * Getter for variable: defaultMax
+     * @return defaultMax
      */
     public int getDefaultMax()
     {
@@ -384,16 +320,29 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
 
     /**
      * Setter for variable: defaultMax
-     * @param newMax
+     * @param sender The sender of the command
+     * @param newDefaultMax Integer value of attempted new defaultMax value
      * @return If new value was set
      */
-    public boolean setDefaultMax(int newMax)
+    public boolean setDefaultMax(CommandSender sender, int newDefaultMax)
     {
-        if (newMax < getDefaultMin())
+        if (sender.hasPermission("srn.admin"))
         {
+            if (newDefaultMax < getDefaultMin())
+            {
+                sender.sendMessage(ChatColor.RED + "Attempted new default max (" + newDefaultMax + ") lower than current default min (" + getDefaultMin() + ")!");
+                return false;
+            }
+            this.defaultMax = newDefaultMax;
+            getConfig().set("DefaultMaximum", getDefaultMax());
+            saveConfig();
+            sender.sendMessage(ChatColor.GRAY + "Default Maximum set to '" + getDefaultMax() + "'");
+            return true;
+        }
+        else
+        {
+            sender.sendMessage(ChatColor.RED + "You need permission 'srn.admin' to use this command.");
             return false;
         }
-        this.defaultMax = newMax;
-        return true;
     }
 }

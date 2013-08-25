@@ -24,8 +24,6 @@ permissions:
     srn.custom:
         description: Allows you generate a random number in custom ranges 
         default: true
-        children:
-            srn.defaults: true
     srn.admin:
         description: Allows you to change the default range, and reload the configuration
         default: op
