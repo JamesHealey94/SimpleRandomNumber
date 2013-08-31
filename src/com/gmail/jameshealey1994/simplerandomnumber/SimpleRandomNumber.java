@@ -8,10 +8,9 @@ import java.util.Random;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class SimpleRandomNumber extends JavaPlugin implements Listener
+public final class SimpleRandomNumber extends JavaPlugin
 {
     private int FALLBACK_MIN = 1;
     private int FALLBACK_MAX = 6;
@@ -137,7 +136,7 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
 
         if (args.length == 1) // roll <max>
         {
-            int max = Integer.valueOf(args[0]);
+            int max = args[0];
             if (getDefaultMin() <= max)
             {
                 broadcastResult(sender, getDefaultMin(), max);
@@ -151,8 +150,8 @@ public final class SimpleRandomNumber extends JavaPlugin implements Listener
         }
         else if (args.length == 2) // roll <min> <max>
         {
-            int min = Integer.valueOf(args[0]);
-            int max = Integer.valueOf(args[1]);
+            int min = args[0];
+            int max = args[1];
             if (min <= max)
             {
                 broadcastResult(sender, min, max);
