@@ -24,6 +24,11 @@ public final class SimpleRandomNumber extends JavaPlugin {
      * invalid.
      */
     private final static int FALLBACK_MAX = 6;
+    
+    /**
+     * Default broadcast message, incase the specified value is invalid.
+     */
+    private final static String DEFAULT_BROADCAST_MESSAGE = "-sender &3rolled (-min to -max) and got &6'-result'!";
 
     /**
      * Minimum of the random number generated, if a minimum is not specified.
@@ -226,7 +231,7 @@ public final class SimpleRandomNumber extends JavaPlugin {
     private void broadcastResult(CommandSender sender, int min, int max) {
         final int result = getRandom(min, max);
 
-        String message = getConfig().getString("BroadcastMessage");
+        String message = getConfig().getString("BroadcastMessage", DEFAULT_BROADCAST_MESSAGE);
         message = ChatColor.translateAlternateColorCodes('&', message);
         message = message.replaceAll("-sender", sender.getName());
         message = message.replaceAll("-min", String.valueOf(min));
