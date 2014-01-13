@@ -1,11 +1,11 @@
 # Default Minimum
 # Default: 1
 # Must be an integer.
-# 
+#
 # Default Maximum
 # Default: 6
 # Must be an integer and equal to or greater than the default maximum number.
-# 
+#
 # Broadcast Message
 # Default: -sender &3rolled (-min to -max) and got &6-result!
 # Will be broadcast to the server when someone generates a random number.
@@ -20,3 +20,4 @@
 DefaultMinimum: 1
 DefaultMaximum: 6
 BroadcastMessage: -sender &3rolled (-min to -max) and got &6'-result'!
+BroadcastDistance: 50

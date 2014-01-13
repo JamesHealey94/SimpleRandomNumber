@@ -2,8 +2,10 @@ package com.gmail.jameshealey1994.simplerandomnumber;
 
 import java.util.Random;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -24,7 +26,7 @@ public final class SimpleRandomNumber extends JavaPlugin {
      * invalid.
      */
     private final static int FALLBACK_MAX = 6;
-    
+
     /**
      * Default broadcast message, incase the specified value is invalid.
      */
@@ -238,7 +240,22 @@ public final class SimpleRandomNumber extends JavaPlugin {
         message = message.replaceAll("-max", String.valueOf(max));
         message = message.replaceAll("-result", String.valueOf(result));
 
-        getServer().broadcastMessage(message);
+        if (sender instanceof Player) {
+            final int broadcastDistance = getConfig().getInt("BroadcastDistance", -1);
+            if (broadcastDistance >= 0) {
+                final Player playerSender = (Player) sender;
+                for (Player player : playerSender.getWorld().getPlayers()) {
+                    final Location playerLoc = player.getLocation();
+                    if ((playerLoc.distance(playerSender.getLocation())) <= broadcastDistance) {
+                        player.sendMessage(message);
+                    }
+                }
+            } else {
+                getServer().broadcastMessage(message);
+            }
+        } else {
+            getServer().broadcastMessage(message);
+        }
     }
 
     /**
